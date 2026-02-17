@@ -4,6 +4,7 @@ import 'providers/game_provider.dart';
 import 'screens/home_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const CoinPincherApp());
 }
 
@@ -13,7 +14,7 @@ class CoinPincherApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => GameProvider(),
+      create: (_) => GameProvider()..loadState(),
       child: MaterialApp(
         title: 'Coin Pincher',
         debugShowCheckedModeBanner: false,
@@ -23,7 +24,19 @@ class CoinPincherApp extends StatelessWidget {
             brightness: Brightness.dark,
           ),
         ),
-        home: const HomeScreen(),
+        home: Consumer<GameProvider>(
+          builder: (context, game, _) {
+            if (!game.loaded) {
+              return const Scaffold(
+                backgroundColor: Color(0xFF1A1A2E),
+                body: Center(
+                  child: CircularProgressIndicator(color: Color(0xFFFFD54F)),
+                ),
+              );
+            }
+            return const HomeScreen();
+          },
+        ),
       ),
     );
   }
