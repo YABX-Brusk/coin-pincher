@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:provider/provider.dart';
 import '../providers/game_provider.dart';
 
@@ -15,7 +14,6 @@ class _CoinWidgetState extends State<CoinWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
-  final AudioPlayer _audioPlayer = AudioPlayer();
   double _currentScale = 1.0;
   bool _isPinching = false;
 
@@ -39,14 +37,13 @@ class _CoinWidgetState extends State<CoinWidget>
   @override
   void dispose() {
     _animController.dispose();
-    _audioPlayer.dispose();
     super.dispose();
   }
 
-  void _onPinchCollect() {
+  void _onCollect() {
     context.read<GameProvider>().addCoin();
     HapticFeedback.lightImpact();
-    _audioPlayer.play(AssetSource('audio/coin.wav'));
+    SystemSound.play(SystemSoundType.click);
     _animController.forward(from: 0);
   }
 
@@ -55,16 +52,21 @@ class _CoinWidgetState extends State<CoinWidget>
     final size = MediaQuery.of(context).size.shortestSide * 0.55;
 
     return GestureDetector(
+      // Tap to collect (works on desktop, web, and mobile)
+      onTap: _onCollect,
+      // Pinch to collect (mobile two-finger gesture)
       onScaleStart: (_) {
         _isPinching = false;
       },
       onScaleUpdate: (details) {
+        // Ignore scale == 1.0 (that's a single-finger drag, not a pinch)
+        if (details.pointerCount < 2) return;
         setState(() {
           _currentScale = details.scale.clamp(0.7, 1.3);
         });
         if (details.scale < 0.85 && !_isPinching) {
           _isPinching = true;
-          _onPinchCollect();
+          _onCollect();
         }
       },
       onScaleEnd: (_) {
