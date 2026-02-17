@@ -13,9 +13,11 @@ class CoinWidget extends StatefulWidget {
 
 class _CoinWidgetState extends State<CoinWidget>
     with SingleTickerProviderStateMixin {
+  static const _poolSize = 4;
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final List<AudioPlayer> _audioPool = [];
+  int _poolIndex = 0;
   double _currentScale = 1.0;
   bool _isPinching = false;
 
@@ -34,22 +36,33 @@ class _CoinWidgetState extends State<CoinWidget>
       parent: _animController,
       curve: Curves.easeOut,
     ));
-    // Pre-load the coin sound for instant playback
-    _audioPlayer.setAsset('assets/audio/coin.wav');
+    // Pre-load a pool of players so overlapping sounds can all finish
+    for (var i = 0; i < _poolSize; i++) {
+      final player = AudioPlayer();
+      player.setAsset('assets/audio/coin.mp3');
+      _audioPool.add(player);
+    }
   }
 
   @override
   void dispose() {
     _animController.dispose();
-    _audioPlayer.dispose();
+    for (final player in _audioPool) {
+      player.dispose();
+    }
     super.dispose();
+  }
+
+  void _playSound() {
+    final player = _audioPool[_poolIndex];
+    _poolIndex = (_poolIndex + 1) % _poolSize;
+    player.stop().then((_) => player.seek(Duration.zero)).then((_) => player.play());
   }
 
   void _onCollect() {
     context.read<GameProvider>().addCoin();
     HapticFeedback.lightImpact();
-    // Seek to start and play (allows rapid replays)
-    _audioPlayer.seek(Duration.zero).then((_) => _audioPlayer.play());
+    _playSound();
     _animController.forward(from: 0);
   }
 
