@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 import '../providers/game_provider.dart';
 
@@ -14,6 +15,7 @@ class _CoinWidgetState extends State<CoinWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
+  final AudioPlayer _audioPlayer = AudioPlayer();
   double _currentScale = 1.0;
   bool _isPinching = false;
 
@@ -32,18 +34,22 @@ class _CoinWidgetState extends State<CoinWidget>
       parent: _animController,
       curve: Curves.easeOut,
     ));
+    // Pre-load the coin sound for instant playback
+    _audioPlayer.setAsset('assets/audio/coin.wav');
   }
 
   @override
   void dispose() {
     _animController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   void _onCollect() {
     context.read<GameProvider>().addCoin();
     HapticFeedback.lightImpact();
-    SystemSound.play(SystemSoundType.click);
+    // Seek to start and play (allows rapid replays)
+    _audioPlayer.seek(Duration.zero).then((_) => _audioPlayer.play());
     _animController.forward(from: 0);
   }
 
